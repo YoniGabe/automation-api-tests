@@ -99,8 +99,10 @@ export async function VisitFlowTests(varPass: string, client: Client, email: str
         // Pages: ['50062e0c-9967-4ed4-9102-f2bc50602d41', '1.0.%'], // current phased version 0.9.38 | dependency > 0.9.31
         // Slugs: ['4ba5d6f9-6642-4817-af67-c79b68c96977', ''], // current phased version 1.0.23 | dependency > 1.0.23
         survey: ['dd0a85ea-7ef0-4bc1-b14f-959e0372877a', ''],
-        'Survey Builder': ['cf17b569-1af4-45a9-aac5-99f23cae45d8', '0.8.%'], //15/5/24: phased version is 0.7.50, once we'll phase 0.8.x and avaliable 0.9.x this has to change
-        Slugs: ['4ba5d6f9-6642-4817-af67-c79b68c96977', '1.3.7'], //slugs above 1.3.7 (1.3.8 and so on) require config  >=1.0.18 but we cant upgrade as its for open sync
+        // 'Survey Builder': ['cf17b569-1af4-45a9-aac5-99f23cae45d8', '0.8.%'], //15/5/24: phased version is 0.7.50, once we'll phase 0.8.x and avaliable 0.9.x this has to change
+        'Survey Builder': ['cf17b569-1af4-45a9-aac5-99f23cae45d8', ''],
+        // Slugs: ['4ba5d6f9-6642-4817-af67-c79b68c96977', '1.3.7'], //slugs above 1.3.7 (1.3.8 and so on) require config  >=1.0.18 but we cant upgrade as its for open sync
+        Slugs: ['4ba5d6f9-6642-4817-af67-c79b68c96977', ''],
         // Slideshow: ['f93658be-17b6-4c92-9df3-4e6c7151e038', '1.1.23'],
         // 'API Testing Framework': ['eb26afcd-3cf2-482e-9ab1-b53c41a6adbe', '0.0.793'], //OUR TESTING ADDON --
         // 'Services Framework': ['00000000-0000-0000-0000-000000000a91', '9.6.34'], // PAPI
@@ -126,7 +128,7 @@ export async function VisitFlowTests(varPass: string, client: Client, email: str
         // 'Cross Platform Engine': ['bb6ee826-1c6b-4a11-9758-40a46acb69c5', '1.4.19'], // CPI_Node current phased version 1.1.92 | dependency > 1.1.85
         // 'Cross Platform Engine': ['bb6ee826-1c6b-4a11-9758-40a46acb69c5', ''], // CPI_Node current phased version 1.1.92 | dependency > 1.1.85
         // 'Cross Platform Engine': ['bb6ee826-1c6b-4a11-9758-40a46acb69c5', ''], // CPI_Node current phased version 1.1.92 | dependency > 1.1.85
-        'Cross Platform Engine Data': ['d6b06ad0-a2c1-4f15-bebb-83ecc4dca74b', ''], // CPI_Node_data current phased version 0.6.14 | dependency > 0.6.11
+        // 'Cross Platform Engine Data': ['d6b06ad0-a2c1-4f15-bebb-83ecc4dca74b', ''], // CPI_Node_data current phased version 0.6.14 | dependency > 0.6.11
         // 'Cross Platform Engine Data': ['d6b06ad0-a2c1-4f15-bebb-83ecc4dca74b', '0.6.%'], // CPI_Node_data current phased version 0.6.14 | dependency > 0.6.11
         // 'Core Data Source Interface': ['00000000-0000-0000-0000-00000000c07e', '0.6.52'], // current phased version 0.6.48 | dependency > 0.6.41
         // 'Core Resources': ['fc5a5974-3b30-4430-8feb-7d5b9699bc9f', '0.6.%'], // current phased version 0.6.41 | dependency > 0.6.35
