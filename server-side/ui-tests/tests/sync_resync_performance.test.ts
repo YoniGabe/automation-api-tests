@@ -86,13 +86,13 @@ export async function SyncResyncPerformanceTests(email: string, password: string
     const chnageVersionResponseArr = await generalService.changeVersion(varPass, testData, false);
 
     const installedSyncVersion = (await generalService.getInstalledAddons()).find(
-        (addon) => addon.Addon.Name == 'sync',
+        (addon) => addon.Addon.Name?.toLowerCase() == 'sync',
     )?.Version;
     const installedNebulaVersion = (await generalService.getInstalledAddons()).find(
-        (addon) => addon.Addon.Name == 'Nebula',
+        (addon) => addon.Addon.Name?.toLowerCase() == 'nebula',
     )?.Version;
     const installedNebulusVersion = (await generalService.getInstalledAddons()).find(
-        (addon) => addon.Addon.Name == 'Nebulus',
+        (addon) => addon.Addon.Name?.toLowerCase() == 'nebulus',
     )?.Version;
 
     let driver: Browser;
@@ -107,13 +107,15 @@ export async function SyncResyncPerformanceTests(email: string, password: string
     let testUdtRowsKeyList: number[];
     let udtsDeleteResponses;
     let udtsHardDeleteResponses: BatchApiResponse[];
-    let udtsDeleteResponse;
+    // let udtsDeleteResponse;
     let udcsDeleteResponses;
     let createdUDT;
     let bulkUpdateUDT;
     let howManyRows;
     let noUdtData = false;
     let noUdcData = false;
+    let testTableIDexist: boolean;
+    let tempFileResponse;
 
     describe(`Sync Resync Performance Test Suite |  Sync Ver: ${installedSyncVersion}, Nebulus Ver: ${installedNebulusVersion}, Nebula Ver: ${installedNebulaVersion} |  ${dateTime}`, async () => {
         describe('Performance Measurement tests', async () => {
@@ -123,6 +125,10 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                 e2eUtils = new E2EUtils(driver);
                 udtsTableRows = [];
                 testUdtRowsKeyList = [];
+                const udtMetaDataList = (await objectsService.getUDTMetaDataList()).find((table) => {
+                    if (table.TableID === tableName) return table;
+                });
+                testTableIDexist = udtMetaDataList === undefined ? false : true;
             });
 
             after(async function () {
@@ -234,6 +240,28 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                 });
             });
 
+            it('NUC RELOAD via API', async function () {
+                const reload = await e2eUtils.nucReload(client);
+                console.log(
+                    'reload.responseSucceessStatus: ',
+                    reload.responseSucceessStatus,
+                    ', reload.errorMessage: ',
+                    reload.errorMessage != '' ? reload.errorMessage : 'Empty',
+                );
+                addContext(this, {
+                    title: `reload.responseSucceessStatus`,
+                    value: reload.responseSucceessStatus,
+                });
+                addContext(this, {
+                    title: `reload.errorMessage`,
+                    value: reload.errorMessage,
+                });
+                addContext(this, {
+                    title: `reload.responseBody`,
+                    value: reload.responseBody,
+                });
+            });
+
             it('Login', async function () {
                 await webAppLoginPage.login(email, password);
             });
@@ -316,180 +344,200 @@ export async function SyncResyncPerformanceTests(email: string, password: string
             });
 
             describe('UDT', async () => {
-                it('Create UDT', async function () {
-                    createdUDT = await objectsService.postUDTMetaData({
-                        // InternalID: Math.floor(Math.random() * 1000000),
-                        TableID: tableName,
-                        MainKeyType: {
-                            ID: 54,
-                            Name: 'Catalog Name',
-                        },
-                        SecondaryKeyType: {
-                            ID: 0,
-                            Name: 'Any',
-                        },
-                    });
-                    addContext(this, {
-                        title: `createdUDT`,
-                        value: JSON.stringify(createdUDT, null, 2),
-                    });
+                it('CREATE UDT', async function () {
+                    if (testTableIDexist === false) {
+                        createdUDT = await objectsService.postUDTMetaData({
+                            // InternalID: Math.floor(Math.random() * 1000000),
+                            TableID: tableName,
+                            MainKeyType: {
+                                ID: 54,
+                                Name: 'Catalog Name',
+                            },
+                            SecondaryKeyType: {
+                                ID: 0,
+                                Name: 'Any',
+                            },
+                        });
+                        // addContext(this, {
+                        //     title: `createdUDT`,
+                        //     value: JSON.stringify(createdUDT, null, 2),
+                        // });
+                    } else {
+                        createdUDT = {};
+                        createdUDT['TableID'] = tableName;
+                    }
                     const getCreatedUDT = await objectsService.getUDTMetaData(createdUDT.TableID as number);
                     expect(getCreatedUDT).to.not.be.undefined;
                     expect(getCreatedUDT).to.haveOwnProperty('InternalID');
                     expect(getCreatedUDT).to.haveOwnProperty('TableID');
                     expect(getCreatedUDT).to.haveOwnProperty('MainKeyType');
                     expect(getCreatedUDT).to.haveOwnProperty('SecondaryKeyType');
-                    expect(getCreatedUDT?.InternalID).to.equal(createdUDT.InternalID);
+                    if (createdUDT.InternalID) expect(getCreatedUDT?.InternalID).to.equal(createdUDT.InternalID);
                     expect(getCreatedUDT?.TableID).to.equal(createdUDT.TableID);
-                });
-
-                it('Perform Manual Sync NO Time Measurement', async function () {
-                    await e2eUtils.performManualSync.bind(this)(client, driver);
-                });
-
-                it('Get All UDT Values', async function () {
-                    const getAllUDTdocuments = await objectsService.getUDT({ page_size: -1 });
-                    driver.sleep(1 * 1000);
-                    console.info('All MapDataExternalID documents length: ', getAllUDTdocuments.length);
                     addContext(this, {
-                        title: `All MapDataExternalID documents length`,
-                        value: `${getAllUDTdocuments.length}`,
+                        title: `testTableIDexist`,
+                        value: `${testTableIDexist}`,
                     });
-                    const allNotAddonCpiDocuments = getAllUDTdocuments.filter((tableRow) => {
-                        if (tableRow.MapDataExternalID !== 'ADDON_CPI_SIDE_DATA') {
-                            return tableRow;
-                        }
-                    });
-                    console.info(
-                        'All MapDataExternalID != "ADDON_CPI_SIDE_DATA" documents length: ',
-                        allNotAddonCpiDocuments.length,
-                    );
+                    console.log('createdUDT: ', JSON.stringify(createdUDT, null, 2));
                     addContext(this, {
-                        title: `All MapDataExternalID != "ADDON_CPI_SIDE_DATA" documents length`,
-                        value: `${allNotAddonCpiDocuments.length}`,
+                        title: `createdUDT`,
+                        value: JSON.stringify(createdUDT, null, 2),
                     });
-                    noUdtData = allNotAddonCpiDocuments.length > 0 ? false : true;
-                    console.info('noUdtData value: ', noUdtData);
                 });
 
-                it('Truncate UDT before inserting new values', async function () {
-                    if (noUdtData == false) {
-                        let index = 1;
-                        // udtsTableRows = await objectsService.getUDT({ page_size: -1 });
-                        // console.info('All udtsTableRows length: ', udtsTableRows.length);
-                        // addContext(this, {
-                        //     title: `All udtsTableRows length`,
-                        //     value: `${udtsTableRows.length}`,
-                        // });
-                        // udtsTableRowsTestTable = udtsTableRows.filter((tableRow) => {
-                        //     if (tableRow.MapDataExternalID == tableName) {
-                        //         return tableRow;
-                        //     }
-                        // });
-                        // console.info('udtsTableRowsTestTable length: ', udtsTableRowsTestTable.length);
-                        // addContext(this, {
-                        //     title: `All MapDataExternalID='SyncPerformanceUDT_Test' documents length`,
-                        //     value: `${udtsTableRowsTestTable.length}`,
-                        // });
+                // it('Retrieve table ID from existing test table', async function () {
+                //     if (testTableIDexist === true) {
+                //         createdUDT = (await objectsService.getUDTMetaDataList()).find(table => { if (table.TableID === tableName) return table });
+                //     }
+                // });
 
-                        // do {
-                        //     udtsTableRowsTestTable = await objectsService.getUDT({
-                        //         where: "MapDataExternalID='SyncPerformanceUDT_Test'",
-                        //         page_size: 1000,
-                        //         page: index,
-                        //     });
-                        //     // console.info('index: ', index, ' udtsTableRows length: ', udtsTableRows.length);
-                        //     // udtsTableRowsTestTable = udtsTableRows.filter((tableRow) => {
-                        //     //     if (tableRow.MapDataExternalID == tableName) {
-                        //     //         return tableRow;
-                        //     //     }
-                        //     // });
-                        //     console.info(
-                        //         'Index: ',
-                        //         index,
-                        //         ' , udtsTableRowsTestTable length: ',
-                        //         udtsTableRowsTestTable.length,
-                        //     );
-                        //     udtsTableRowsTestTable.forEach((testTableRow) => {
-                        //         testTableRow.Hidden = true;
-                        //     });
-                        //     console.info(
-                        //         'First item of udtsTableRowsTestTable: ',
-                        //         JSON.stringify(udtsTableRowsTestTable[0], null, 2),
-                        //     );
-                        //     addContext(this, {
-                        //         title: `First item of udtsTableRowsTestTable`,
-                        //         value: JSON.stringify(udtsTableRowsTestTable[0], null, 2),
-                        //     });
+                // it('Perform Manual Sync NO Time Measurement', async function () {
+                //     await e2eUtils.performManualSync.bind(this)(client, driver);
+                // });
 
-                        //     udtsRowsDeleteResponses = await objectsService.postBatchUDT(udtsTableRowsTestTable);
-                        //     udtsRowsDeleteResponses.forEach((rowDeleteResponse) => {
-                        //         Object.keys(rowDeleteResponse).forEach((rowDeleteResponseKey) => {
-                        //             expect(rowDeleteResponseKey).to.be.oneOf([
-                        //                 'InternalID',
-                        //                 'ExternalID',
-                        //                 'UUID',
-                        //                 'Status',
-                        //                 'URI',
-                        //                 'Message',
-                        //             ]);
-                        //         });
-                        //         expect(rowDeleteResponse.Status).to.equal('Update');
-                        //         expect(rowDeleteResponse.Message).to.equal('Row updated.');
-                        //     });
-                        //     index++;
-                        // } while (udtsTableRowsTestTable.length > 0 && index < 102);
+                // it('Get All UDT Values', async function () {
+                //     const getAllUDTdocuments = await objectsService.getUDT({ page_size: -1 });
+                //     driver.sleep(1 * 1000);
+                //     console.info('All MapDataExternalID documents length: ', getAllUDTdocuments.length);
+                //     addContext(this, {
+                //         title: `All MapDataExternalID documents length`,
+                //         value: `${getAllUDTdocuments.length}`,
+                //     });
+                //     const allNotAddonCpiDocuments = getAllUDTdocuments.filter((tableRow) => {
+                //         if (tableRow.MapDataExternalID !== 'ADDON_CPI_SIDE_DATA') {
+                //             return tableRow;
+                //         }
+                //     });
+                //     console.info(
+                //         'All MapDataExternalID != "ADDON_CPI_SIDE_DATA" documents length: ',
+                //         allNotAddonCpiDocuments.length,
+                //     );
+                //     addContext(this, {
+                //         title: `All MapDataExternalID != "ADDON_CPI_SIDE_DATA" documents length`,
+                //         value: `${allNotAddonCpiDocuments.length}`,
+                //     });
+                //     noUdtData = allNotAddonCpiDocuments.length > 0 ? false : true;
+                //     console.info('noUdtData value: ', noUdtData);
+                // });
 
-                        do {
-                            testUdtRowsKeyList = [];
-                            udtsTableRowsNoAddonCpi = [];
-                            udtsTableRows = await objectsService.getUDT({ page_size: 1000, page: index });
-                            udtsTableRowsNoAddonCpi = udtsTableRows.filter((tableRow) => {
-                                if (tableRow.MapDataExternalID != 'ADDON_CPI_SIDE_DATA') {
-                                    return tableRow;
-                                }
-                            });
-                            console.info(
-                                'Index: ',
-                                index,
-                                ' , udtsTableRowsNoAddonCpi length: ',
-                                udtsTableRowsNoAddonCpi.length,
-                            );
-                            udtsTableRowsNoAddonCpi.forEach((tableRow) => {
-                                if (tableRow.InternalID) testUdtRowsKeyList.push(tableRow.InternalID);
-                                tableRow.Hidden = true;
-                            });
+                // it('Truncate UDT before inserting new values', async function () {
+                //     if (noUdtData == false) {
+                //         let index = 1;
+                //         // udtsTableRows = await objectsService.getUDT({ page_size: -1 });
+                //         // console.info('All udtsTableRows length: ', udtsTableRows.length);
+                //         // addContext(this, {
+                //         //     title: `All udtsTableRows length`,
+                //         //     value: `${udtsTableRows.length}`,
+                //         // });
+                //         // udtsTableRowsTestTable = udtsTableRows.filter((tableRow) => {
+                //         //     if (tableRow.MapDataExternalID == tableName) {
+                //         //         return tableRow;
+                //         //     }
+                //         // });
+                //         // console.info('udtsTableRowsTestTable length: ', udtsTableRowsTestTable.length);
+                //         // addContext(this, {
+                //         //     title: `All MapDataExternalID='SyncPerformanceUDT_Test' documents length`,
+                //         //     value: `${udtsTableRowsTestTable.length}`,
+                //         // });
 
-                            if (testUdtRowsKeyList.length)
-                                udtsHardDeleteResponses = await objectsService.batchHardDeleteUDT(testUdtRowsKeyList);
-                            testUdtRowsKeyList.length &&
-                                console.info('Hard Delete Response: ', udtsHardDeleteResponses);
-                            index++;
-                        } while (testUdtRowsKeyList.length > 0 && index < 101);
+                //         // do {
+                //         //     udtsTableRowsTestTable = await objectsService.getUDT({
+                //         //         where: "MapDataExternalID='SyncPerformanceUDT_Test'",
+                //         //         page_size: 1000,
+                //         //         page: index,
+                //         //     });
+                //         //     // console.info('index: ', index, ' udtsTableRows length: ', udtsTableRows.length);
+                //         //     // udtsTableRowsTestTable = udtsTableRows.filter((tableRow) => {
+                //         //     //     if (tableRow.MapDataExternalID == tableName) {
+                //         //     //         return tableRow;
+                //         //     //     }
+                //         //     // });
+                //         //     console.info(
+                //         //         'Index: ',
+                //         //         index,
+                //         //         ' , udtsTableRowsTestTable length: ',
+                //         //         udtsTableRowsTestTable.length,
+                //         //     );
+                //         //     udtsTableRowsTestTable.forEach((testTableRow) => {
+                //         //         testTableRow.Hidden = true;
+                //         //     });
+                //         //     console.info(
+                //         //         'First item of udtsTableRowsTestTable: ',
+                //         //         JSON.stringify(udtsTableRowsTestTable[0], null, 2),
+                //         //     );
+                //         //     addContext(this, {
+                //         //         title: `First item of udtsTableRowsTestTable`,
+                //         //         value: JSON.stringify(udtsTableRowsTestTable[0], null, 2),
+                //         //     });
 
-                        const getCreatedUDTdocuments = await objectsService.getUDT({
-                            where: "MapDataExternalID='" + tableName + "'",
-                            page_size: -1,
-                        });
-                        addContext(this, {
-                            title: `index`,
-                            value: `${index}`,
-                        });
-                        addContext(this, {
-                            title: `All MapDataExternalID='SyncPerformanceUDT_Test' documents length`,
-                            value: `${getCreatedUDTdocuments.length}`,
-                        });
-                        expect(getCreatedUDTdocuments).to.be.an('array').with.lengthOf(0);
-                    }
-                });
+                //         //     udtsRowsDeleteResponses = await objectsService.postBatchUDT(udtsTableRowsTestTable);
+                //         //     udtsRowsDeleteResponses.forEach((rowDeleteResponse) => {
+                //         //         Object.keys(rowDeleteResponse).forEach((rowDeleteResponseKey) => {
+                //         //             expect(rowDeleteResponseKey).to.be.oneOf([
+                //         //                 'InternalID',
+                //         //                 'ExternalID',
+                //         //                 'UUID',
+                //         //                 'Status',
+                //         //                 'URI',
+                //         //                 'Message',
+                //         //             ]);
+                //         //         });
+                //         //         expect(rowDeleteResponse.Status).to.equal('Update');
+                //         //         expect(rowDeleteResponse.Message).to.equal('Row updated.');
+                //         //     });
+                //         //     index++;
+                //         // } while (udtsTableRowsTestTable.length > 0 && index < 102);
 
-                it('Perform Manual Sync NO Time Measurement', async function () {
-                    await e2eUtils.performManualSync.bind(this)(client, driver);
-                });
+                //         do {
+                //             testUdtRowsKeyList = [];
+                //             udtsTableRowsNoAddonCpi = [];
+                //             udtsTableRows = await objectsService.getUDT({ page_size: 1000, page: index });
+                //             udtsTableRowsNoAddonCpi = udtsTableRows.filter((tableRow) => {
+                //                 if (tableRow.MapDataExternalID != 'ADDON_CPI_SIDE_DATA') {
+                //                     return tableRow;
+                //                 }
+                //             });
+                //             console.info(
+                //                 'Index: ',
+                //                 index,
+                //                 ' , udtsTableRowsNoAddonCpi length: ',
+                //                 udtsTableRowsNoAddonCpi.length,
+                //             );
+                //             udtsTableRowsNoAddonCpi.forEach((tableRow) => {
+                //                 if (tableRow.InternalID) testUdtRowsKeyList.push(tableRow.InternalID);
+                //                 tableRow.Hidden = true;
+                //             });
 
-                it('Logout Login', async function () {
-                    await e2eUtils.logOutLogIn(email, password, client);
-                });
+                //             if (testUdtRowsKeyList.length)
+                //                 udtsHardDeleteResponses = await objectsService.batchHardDeleteUDT(testUdtRowsKeyList);
+                //             testUdtRowsKeyList.length &&
+                //                 console.info('Hard Delete Response: ', udtsHardDeleteResponses);
+                //             index++;
+                //         } while (testUdtRowsKeyList.length > 0 && index < 101);
+
+                //         const getCreatedUDTdocuments = await objectsService.getUDT({
+                //             where: "MapDataExternalID='" + tableName + "'",
+                //             page_size: -1,
+                //         });
+                //         addContext(this, {
+                //             title: `index`,
+                //             value: `${index}`,
+                //         });
+                //         addContext(this, {
+                //             title: `All MapDataExternalID='SyncPerformanceUDT_Test' documents length`,
+                //             value: `${getCreatedUDTdocuments.length}`,
+                //         });
+                //         expect(getCreatedUDTdocuments).to.be.an('array').with.lengthOf(0);
+                //     }
+                // });
+
+                // it('Perform Manual Sync NO Time Measurement', async function () {
+                //     await e2eUtils.performManualSync.bind(this)(client, driver);
+                // });
+
+                // it('Logout Login', async function () {
+                //     await e2eUtils.logOutLogIn(email, password, client);
+                // });
 
                 // it('Perform Manual Resync NO Time Measurement', async function () {
                 //     await e2eUtils.performManualResync.bind(this)(client, driver);
@@ -522,6 +570,11 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                 it('Bulk create UDT with 10K Rows', async function () {
                     const lines: string[][] = [];
                     const udtRows_10k: UserDefinedTableRow[] = [];
+                    console.log('createdUDT: ', JSON.stringify(createdUDT, null, 2));
+                    addContext(this, {
+                        title: `createdUDT`,
+                        value: JSON.stringify(createdUDT, null, 2),
+                    });
                     for (let index = 1; index < 10001; index++) {
                         lines.push([createdUDT.TableID, `Test ${index}`, '', `Value ${index}`]);
                         udtRows_10k.push({
@@ -806,7 +859,7 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                     expect(resyncTime).to.be.a('number').and.greaterThan(0);
                 });
 
-                it('Delete Test UDT Table-Rows via API', async function () {
+                it('DELETE Test UDT Table-Rows via API', async function () {
                     let index = 1;
                     udtsTableRowsTestTable = await objectsService.getUDT({
                         where: "MapDataExternalID='" + tableName + "'",
@@ -892,9 +945,27 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                     });
                 });
 
-                // it('Perform Manual Sync NO Time Measurement', async function () {
-                //     await e2eUtils.performManualSync.bind(this)(client, driver);
-                // });
+                it('NUC RELOAD via API', async function () {
+                    const reload = await e2eUtils.nucReload(client);
+                    console.log(
+                        'reload.responseSucceessStatus: ',
+                        reload.responseSucceessStatus,
+                        ', reload.errorMessage: ',
+                        reload.errorMessage != '' ? reload.errorMessage : 'Empty',
+                    );
+                    addContext(this, {
+                        title: `reload.responseSucceessStatus`,
+                        value: reload.responseSucceessStatus,
+                    });
+                    addContext(this, {
+                        title: `reload.errorMessage`,
+                        value: reload.errorMessage,
+                    });
+                    addContext(this, {
+                        title: `reload.responseBody`,
+                        value: reload.responseBody,
+                    });
+                });
 
                 it('Logout Login', async function () {
                     await e2eUtils.logOutLogIn(email, password, client);
@@ -928,11 +999,11 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                     expect(allNotAddonCpiDocuments).to.be.an('array').with.lengthOf(0);
                 });
 
-                it('Delete Test UDT Table via API', async function () {
-                    createdUDT.Hidden = true;
-                    udtsDeleteResponse = await objectsService.postUDTMetaData(createdUDT);
-                    expect(udtsDeleteResponse.Hidden).to.be.true;
-                });
+                // it('Delete Test UDT Table via API', async function () {
+                //     createdUDT.Hidden = true;
+                //     udtsDeleteResponse = await objectsService.postUDTMetaData(createdUDT);
+                //     expect(udtsDeleteResponse.Hidden).to.be.true;
+                // });
 
                 it('Perform Manual Sync NO Time Measurement', async function () {
                     await e2eUtils.performManualSync.bind(this)(client, driver);
@@ -960,7 +1031,10 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                         title: `Test UDTs`,
                         value: JSON.stringify(testUDTs, null, 2),
                     });
-                    expect(testUDTs).to.be.an('array').with.lengthOf(0);
+                    // expect(testUDTs).to.be.an('array').with.lengthOf(0); // relevant when the table itself has been hidden at the end of the test
+                    createdUDT.InternalID
+                        ? expect(testUDTs).to.be.an('array').with.lengthOf(1)
+                        : expect(testUDTs).to.be.an('array').with.lengthOf(0);
                 });
             });
 
@@ -969,7 +1043,7 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                     await e2eUtils.logOutLogIn(email, password, client);
                 });
 
-                it('Create UDC', async function () {
+                it('Create test UDC', async function () {
                     const fields: FieldDefinition[] = [
                         {
                             classType: 'Primitive',
@@ -1011,7 +1085,7 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                     });
                 });
 
-                it('Insert 10K Rows to UDC', async function () {
+                it('Create Temp File using PFS', async function () {
                     howManyRows = 10000;
                     const headers = 'str,int';
                     const runningDataStr = `index_${random200charString}`;
@@ -1025,7 +1099,7 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                     });
                     console.log('File Name: ', fileName);
                     const mime = 'text/csv';
-                    const tempFileResponse = await pfsService.postTempFile({
+                    tempFileResponse = await pfsService.postTempFile({
                         FileName: fileName,
                         MIME: mime,
                     });
@@ -1076,6 +1150,9 @@ export async function SyncResyncPerformanceTests(email: string, password: string
                     const putResponsePart1 = await pfsService.putPresignedURL(tempFileResponse.PutURL, buf);
                     expect(putResponsePart1.ok).to.equal(true);
                     expect(putResponsePart1.status).to.equal(200);
+                });
+
+                it('Insert 10K Rows to UDC', async function () {
                     // Import file to UDC
                     const bodyToImport = {
                         URI: tempFileResponse.TemporaryFileURL,

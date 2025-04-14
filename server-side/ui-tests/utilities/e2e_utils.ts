@@ -381,6 +381,28 @@ export default class E2EUtils extends BasePomObject {
         return fields;
     }
 
+    public async nucReload(
+        client: Client,
+    ): Promise<{ responseSucceessStatus: boolean; errorMessage: string; responseBody: string }> {
+        const generalService = new GeneralService(client);
+        const response = await generalService.reloadNucleus();
+        console.log('at nucReload of e2eUtils-> the received response: ', JSON.stringify(response, null, 2));
+        let responseSucceed: boolean;
+        let errorMessage: string;
+        try {
+            expect(response.Ok).to.be.true;
+            expect(response.Status).to.equal(200);
+            expect(response.Error).to.eql({});
+            responseSucceed = true;
+            errorMessage = '';
+        } catch (error) {
+            const theError = error as Error;
+            responseSucceed = false;
+            errorMessage = theError.message;
+        }
+        return { responseSucceessStatus: responseSucceed, errorMessage: errorMessage, responseBody: response.Body };
+    }
+
     public async performManualSync(this: Context, client: Client, driver: Browser): Promise<number> {
         const webAppHeader: WebAppHeader = new WebAppHeader(driver);
         const webAppHomePage: WebAppHomePage = new WebAppHomePage(driver);

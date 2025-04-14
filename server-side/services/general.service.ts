@@ -2256,6 +2256,17 @@ export default class GeneralService {
         return !!pattern.test(s.replace(' ', '%20'));
     }
 
+    async reloadNucleus(): Promise<FetchStatusResponse> {
+        const response = await this.fetchStatus(`/deployment/Reload`, {
+            method: 'POST',
+            body: JSON.stringify({}),
+            headers: {
+                Authorization: `Bearer ${this.client.OAuthAccessToken}`,
+            },
+        });
+        return response;
+    }
+
     /**
      * This uses the var endpoint, this is why this have to get varKey
      * @param addonUUID
