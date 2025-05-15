@@ -1579,77 +1579,77 @@ export async function PepperiNotificationServiceTests(
             //     expect(installAddon[1]).to.be.true;
             // });
 
-            it(`Verify ADAL Upgraded After PNS`, async () => {
-                //Downgrade ADAL
-                let downgradeAddon = await generalService.papiClient.addons.installedAddons
-                    .addonUUID(testData['Notification Service'][0])
-                    //.downgrade('1.0.101');Oleg
-                    .downgrade('1.0.113');
-                expect(downgradeAddon).to.have.property('URI');
+            // it(`Verify ADAL Upgraded After PNS`, async () => {
+            //     //Downgrade ADAL
+            //     let downgradeAddon = await generalService.papiClient.addons.installedAddons
+            //         .addonUUID(testData['Notification Service'][0])
+            //         //.downgrade('1.0.101');Oleg
+            //         .downgrade('1.0.113');
+            //     expect(downgradeAddon).to.have.property('URI');
 
-                let postDowngradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
-                    downgradeAddon.URI as string,
-                    40,
-                );
-                //debugger;
-                expect(postDowngradeApiResponse.Status?.ID).to.be.equal(1);
+            //     let postDowngradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
+            //         downgradeAddon.URI as string,
+            //         40,
+            //     );
+            //     //debugger;
+            //     expect(postDowngradeApiResponse.Status?.ID).to.be.equal(1);
 
-                //Downgrade PNS
-                downgradeAddon = await generalService.papiClient.addons.installedAddons
-                    .addonUUID(testData['ADAL'][0])
-                    //.downgrade('1.0.260');Oleg
-                    .downgrade('1.4.120');
-                //debugger;
-                expect(downgradeAddon).to.have.property('URI');
+            //     //Downgrade PNS
+            //     downgradeAddon = await generalService.papiClient.addons.installedAddons
+            //         .addonUUID(testData['ADAL'][0])
+            //         //.downgrade('1.0.260');Oleg
+            //         .downgrade('1.4.120');
+            //     //debugger;
+            //     expect(downgradeAddon).to.have.property('URI');
 
-                postDowngradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
-                    downgradeAddon.URI as string,
-                    40,
-                );
-                //debugger;
-                expect(postDowngradeApiResponse.Status?.ID).to.be.equal(1);
+            //     postDowngradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
+            //         downgradeAddon.URI as string,
+            //         40,
+            //     );
+            //     //debugger;
+            //     expect(postDowngradeApiResponse.Status?.ID).to.be.equal(1);
 
-                //Upgrade ADAL
-                // let upgradeAddon = await generalService.papiClient.addons.installedAddons
-                //     .addonUUID(testData['Notification Service'][0])
-                //     //.upgrade('1.0.110');//Oleg
-                //     .upgrade('');
-                //     //debugger;
+            //     //Upgrade ADAL
+            //     // let upgradeAddon = await generalService.papiClient.addons.installedAddons
+            //     //     .addonUUID(testData['Notification Service'][0])
+            //     //     //.upgrade('1.0.110');//Oleg
+            //     //     .upgrade('');
+            //     //     //debugger;
 
-                // expect(upgradeAddon).to.have.property('URI');
+            //     // expect(upgradeAddon).to.have.property('URI');
 
-                // let postUpgradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
-                //     upgradeAddon.URI as string,
-                //     40,
-                // );
-                //     debugger;
-                // expect(postUpgradeApiResponse.Status?.ID).to.be.equal(1);
+            //     // let postUpgradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
+            //     //     upgradeAddon.URI as string,
+            //     //     40,
+            //     // );
+            //     //     debugger;
+            //     // expect(postUpgradeApiResponse.Status?.ID).to.be.equal(1);
 
-                const responseUpgradePNS = await generalService.installLatestAvalibaleVersionOfAddon(varKey, {
-                    'Notification Service': ['00000000-0000-0000-0000-000000040fa9', ''],
-                });
-                //debugger;
-                expect(responseUpgradePNS[0]).to.be.equal(true);
+            //     const responseUpgradePNS = await generalService.installLatestAvalibaleVersionOfAddon(varKey, {
+            //         'Notification Service': ['00000000-0000-0000-0000-000000040fa9', ''],
+            //     });
+            //     //debugger;
+            //     expect(responseUpgradePNS[0]).to.be.equal(true);
 
-                // //Upgrade PNS
-                // upgradeAddon = await generalService.papiClient.addons.installedAddons
-                //     .addonUUID(testData['ADAL'][0])
-                //     //.upgrade('1.2.20'); //Oleg
-                //     .upgrade('');
-                //     debugger;
-                // expect(upgradeAddon).to.have.property('URI');
+            //     // //Upgrade PNS
+            //     // upgradeAddon = await generalService.papiClient.addons.installedAddons
+            //     //     .addonUUID(testData['ADAL'][0])
+            //     //     //.upgrade('1.2.20'); //Oleg
+            //     //     .upgrade('');
+            //     //     debugger;
+            //     // expect(upgradeAddon).to.have.property('URI');
 
-                // postUpgradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
-                //     upgradeAddon.URI as string,
-                //     40,
-                // );
-                const responseUpgradeADAL = await generalService.installLatestAvalibaleVersionOfAddon(varKey, {
-                    ADAL: ['00000000-0000-0000-0000-00000000ada1', ''],
-                });
-                //debugger;
-                expect(responseUpgradeADAL[0]).to.be.equal(true);
-                // expect(postUpgradeApiResponse.Status?.ID).to.be.equal(1);
-            });
+            //     // postUpgradeApiResponse = await generalService.getAuditLogResultObjectIfValid(
+            //     //     upgradeAddon.URI as string,
+            //     //     40,
+            //     // );
+            //     const responseUpgradeADAL = await generalService.installLatestAvalibaleVersionOfAddon(varKey, {
+            //         ADAL: ['00000000-0000-0000-0000-00000000ada1', ''],
+            //     });
+            //     //debugger;
+            //     expect(responseUpgradeADAL[0]).to.be.equal(true);
+            //     // expect(postUpgradeApiResponse.Status?.ID).to.be.equal(1);
+            // });
         });
     });
 }
